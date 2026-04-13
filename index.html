@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Tracker V3.3</title>
+<style>
+body {
+  font-family: Arial;
+  margin:0;
+  color:#fff;
+  background:#111;
+}
+
+body.homeMode {
+  background-image: url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...');
+  background-size:cover;
+  background-position:center;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  display: none;
+  background: rgba(0,0,0,0.75);
+}
+
+.screen.active { display:block; }
+
+.container { padding:16px; }
+
+button {
+  padding:14px;
+  font-size:16px;
+  margin-top:10px;
+  width:100%;
+  border-radius:10px;
+  border:none;
+}
+
+.card {
+  background:#1e1e1e;
+  padding:12px;
+  margin-bottom:12px;
+  border-radius:10px;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+/* workout set row layout fix */
+.card > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.card > div input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.card > div .small {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 10px;
+  }
+
+  .card > div {
+    gap: 6px;
+  }
+
+  input, select {
+    font-size: 14px;
+  }
+}
+
+.small {
+  font-size:12px;
+  color:#aaa;
+}
+
+.centerBox {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  text-align:center;
+}
+
+.startBox {
+  background:#222;
+  padding:20px;
+  border-radius:15px;
+  width:80%;
+  max-width:300px;
+}
+
+canvas {
+  width:100%;
+  background:#111;
+  border-radius:10px;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="centerBox">
+    <div class="startBox">
+      <h3>Next Workout</h3>
+      <h1 id="nextWorkout"></h1>
+      <button onclick="startWorkout()">Start Workout</button>
+      <button onclick="exportBackup()">Backup Data (JSON)</button>
+      <button onclick="document.getElementById('restoreInput').click()">Restore Backup</button>
+      <button onclick="showScreen('graphs')">Graphs</button>
+      <p class="small" id="lastInfo"></p>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="restoreInput" accept="application/json" style="display:none" onchange="restoreBackup(event)">
+
+<!-- WORKOUT -->
+<div id="workout" class="screen">
+  <div class="container">
+    <h2 id="workoutTitle"></h2>
+    <div id="exerciseContainer"></div>
+    <button onclick="finishWorkout()">Finish Workout</button>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div id="summary" class="screen">
+  <div class="container">
+    <h2>Workout Summary</h2>
+    <div id="summaryContent"></div>
+    <button onclick="goHome()">Back Home</button>
+  </div>
+</div>
+
+<!-- GRAPHS -->
+<div id="graphs" class="screen">
+  <div class="container">
+    <h2>Progress Graphs</h2>
+
+    <select id="exerciseSelect" onchange="drawGraph()"></select>
+
+    <canvas id="graphCanvas" height="200"></canvas>
+
+    <button onclick="showScreen('home')">Back Home</button>
+  </div>
+</div>
+
+<script>
+
+const workouts = [
+  {
+    name: "upper_main",
+    exercises: ["Bench Press","Deadlift","Dominadas asistidas","Press inclinado mancuernas","Remo con barra","Fondos máquina","Curl bíceps","Elevaciones piernas","Elevaciones laterales"]
+  },
+  {
+    name: "legs_A",
+    exercises: ["Squat","Romanian Deadlift","Bulgarian Squats","Hip Thrust","Curl femoral","Gemelos","Rueda abdominal"]
+  },
+  {
+    name: "upper_acc",
+    exercises: ["Dumbbell Bench Press","Lat Pulldown","Seated Military Press","Remo en polea","Elevaciones laterales (S1)","Facepulls (S1)","Extensión tríceps (S2)","Curl hammer (S2)"]
+  },
+  {
+    name: "legs_B",
+    exercises: ["Leg Press","Dumbbell Romanian Deadlift","Leg Extension","Standing Leg Curl","Abductores","Adductores"]
+  }
+];
+
+let currentWorkoutIndex = parseInt(localStorage.getItem("currentWorkoutIndex") || "0");
+let sessionData = {};
+let history = JSON.parse(localStorage.getItem("history") || "[]");
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('homeMode', id==='home');
+
+  if(id==='graphs') loadExerciseOptions();
+}
+
+function updateHome() {
+  const workout = workouts[currentWorkoutIndex];
+  document.getElementById("nextWorkout").innerText = workout.name;
+}
+
+function startWorkout() {
+  showScreen('workout');
+  const workout = workouts[currentWorkoutIndex];
+  document.getElementById("workoutTitle").innerText = workout.name;
+
+  const container = document.getElementById("exerciseContainer");
+  container.innerHTML = "";
+  sessionData = {};
+
+  const prev = history.slice().reverse().find(h => h.name === workout.name);
+
+  workout.exercises.forEach(ex => {
+    sessionData[ex] = [];
+    const prevSets = prev?.sets?.[ex] || [];
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const title = document.createElement("h3");
+    title.innerText = ex;
+    card.appendChild(title);
+
+    for (let i=0;i<4;i++){
+      const row=document.createElement("div");
+
+      const w=document.createElement("input");
+      w.placeholder="kg";
+      w.type="number";
+
+      const r=document.createElement("input");
+      r.placeholder="reps";
+      r.type="number";
+
+      const last=document.createElement("div");
+      last.className="small";
+      last.innerText = prevSets[i] ? `Last: ${prevSets[i].weight}x${prevSets[i].reps}` : "Last: -";
+
+      w.onchange=r.onchange=()=>{
+        sessionData[ex][i]={weight:+w.value||0,reps:+r.value||0};
+      };
+
+      row.appendChild(w);
+      row.appendChild(r);
+      row.appendChild(last);
+      card.appendChild(row);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+function calculateVolume(sets){
+  return sets.reduce((s,x)=>s+(x.weight*x.reps),0);
+}
+
+function finishWorkout(){
+  const summary={},clean={};
+
+  Object.keys(sessionData).forEach(ex=>{
+    const sets=sessionData[ex].filter(Boolean);
+    summary[ex]=calculateVolume(sets);
+    clean[ex]=sets;
+  });
+
+  history.push({name:workouts[currentWorkoutIndex].name,data:summary,sets:clean});
+  localStorage.setItem("history",JSON.stringify(history));
+
+  currentWorkoutIndex=(currentWorkoutIndex+1)%workouts.length;
+  localStorage.setItem("currentWorkoutIndex",currentWorkoutIndex);
+
+  showScreen('summary');
+}
+
+function goHome(){showScreen('home');updateHome();}
+
+function exportBackup(){
+  const blob=new Blob([JSON.stringify({history,currentWorkoutIndex},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="gym-backup.json";a.click();URL.revokeObjectURL(url);
+}
+
+function restoreBackup(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=function(ev){
+    const b=JSON.parse(ev.target.result);
+    history=b.history||[];
+    currentWorkoutIndex=b.currentWorkoutIndex||0;
+    localStorage.setItem("history",JSON.stringify(history));
+    localStorage.setItem("currentWorkoutIndex",currentWorkoutIndex);
+    updateHome();
+  };
+  r.readAsText(f);
+}
+
+// GRAPH SYSTEM
+function loadExerciseOptions(){
+  const sel=document.getElementById("exerciseSelect");
+  sel.innerHTML="";
+
+  const set=new Set();
+  history.forEach(h=>Object.keys(h.data||{}).forEach(e=>set.add(e)));
+
+  [...set].forEach(e=>{
+    const o=document.createElement("option");
+    o.value=e;o.textContent=e;
+    sel.appendChild(o);
+  });
+}
+
+function drawGraph() {
+  const ex = document.getElementById("exerciseSelect").value;
+  const canvas = document.getElementById("graphCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const values = [];
+  const labels = [];
+
+  history.forEach((h, idx) => {
+    if (h.data && h.data[ex] !== undefined) {
+      values.push(h.data[ex]);
+      const d = h.date ? new Date(h.date) : null;
+      labels.push(d ? d.toLocaleDateString() : (h.name + " " + idx));
+    }
+  });
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (values.length < 2) return;
+
+  const padding = 30;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+
+  const w = canvas.width;
+  const h = canvas.height;
+
+  const plotW = w - padding * 2;
+  const plotH = h - padding * 2;
+
+  // grid
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 5; i++) {
+    const y = padding + (plotH / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(w - padding, y);
+    ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = "#888";
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, h - padding);
+  ctx.lineTo(w - padding, h - padding);
+  ctx.stroke();
+
+  // y labels
+  ctx.fillStyle = "#aaa";
+  ctx.font = "12px Arial";
+  ctx.fillText(max.toFixed(0), 5, padding);
+  ctx.fillText(min.toFixed(0), 5, h - padding);
+
+  // line
+  ctx.strokeStyle = "#4caf50";
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = padding + (i / (values.length - 1)) * plotW;
+    const y = padding + (1 - (v - min) / (max - min || 1)) * plotH;
+
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+
+    ctx.fillStyle = "#4caf50";
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.stroke();
+
+  // x-axis labels
+  ctx.fillStyle = "#aaa";
+  ctx.font = "10px Arial";
+
+  values.forEach((_, i) => {
+    const x = padding + (i / (values.length - 1)) * plotW;
+    const y = h - padding + 15;
+
+    const label = labels[i];
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-Math.PI / 4);
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  });
+}
+
+updateHome();showScreen('home');document.body.classList.add('homeMode');
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
