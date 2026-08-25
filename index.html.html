@@ -1,0 +1,4874 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Gym Tracker</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<style>
+
+/* =========================================================
+   GENERAL
+   ========================================================= */
+
+body {
+
+    font-family: Arial;
+
+    margin: 0;
+
+    color: #fff;
+
+    background: #111;
+
+}
+
+
+body.homeMode {
+
+    background-image:
+        url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...');
+
+    background-size: cover;
+
+    background-position: center;
+
+}
+
+
+.screen {
+
+    position: fixed;
+
+    inset: 0;
+
+    overflow-y: auto;
+
+    display: none;
+
+    background: rgba(0,0,0,0.75);
+
+}
+
+
+.screen.active {
+
+    display: block;
+
+}
+
+
+.container {
+
+    padding: 16px;
+
+}
+
+
+button {
+
+    padding: 14px;
+
+    font-size: 16px;
+
+    margin-top: 10px;
+
+    width: 100%;
+
+    border-radius: 10px;
+
+    border: none;
+
+}
+
+
+.card {
+
+    background: #1e1e1e;
+
+    padding: 12px;
+
+    margin-bottom: 12px;
+
+    border-radius: 10px;
+
+}
+
+
+input,
+select {
+
+    width: 100%;
+
+    padding: 10px;
+
+    margin: 5px 0;
+
+    font-size: 16px;
+
+    box-sizing: border-box;
+
+}
+
+
+.card > div {
+
+    display: flex;
+
+    gap: 8px;
+
+    align-items: center;
+
+}
+
+
+.card > div input {
+
+    flex: 1;
+
+    width: auto;
+
+    min-width: 0;
+
+}
+
+
+.card > div .small {
+
+    flex: 1;
+
+}
+
+
+@media (max-width: 600px) {
+
+    .card {
+
+        padding: 10px;
+
+    }
+
+    .card > div {
+
+        gap: 6px;
+
+    }
+
+    input,
+    select {
+
+        font-size: 14px;
+
+    }
+
+}
+
+
+.small {
+
+    font-size: 12px;
+
+    color: #aaa;
+
+}
+
+
+.centerBox {
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    height: 100vh;
+
+    text-align: center;
+
+}
+
+
+.startBox {
+
+    background: #222;
+
+    padding: 20px;
+
+    border-radius: 15px;
+
+    width: 80%;
+
+    max-width: 300px;
+
+}
+
+
+canvas {
+
+    width: 100%;
+
+    background: #111;
+
+    border-radius: 10px;
+
+    margin-top: 10px;
+
+}
+
+
+.finishSetBtn {
+
+    width: auto;
+
+    padding: 6px 10px;
+
+    font-size: 12px;
+
+    margin-top: 0;
+
+    border-radius: 6px;
+
+}
+
+
+/* =========================================================
+   PLAN INFORMATION
+   ========================================================= */
+
+.planInfo {
+
+    text-align: center;
+    color: #aaa;
+    margin-bottom: 15px;
+
+}
+
+
+.planInfo strong {
+    color: #fff;
+}
+
+
+.targetInfo {
+    background: #151515;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #aaa;
+}
+.targetInfo strong {
+    color: #fff;
+}
+
+/* =========================================================
+   WARMUP / WORKING LABELS
+   ========================================================= */
+
+.sectionLabel {
+
+    font-size: 12px;
+
+    color: #aaa;
+
+    margin-top: 10px;
+
+    margin-bottom: 4px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.5px;
+
+}
+
+
+/* =========================================================
+   REST OVERLAY
+   ========================================================= */
+
+#restOverlay {
+
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 999;
+
+}
+
+
+#overlayExercise {
+
+    font-size: 20px;
+    opacity: 0.7;
+
+}
+
+
+#overlayTimer {
+
+    font-size: 60px;
+    font-weight: bold;
+    margin: 20px 0;
+
+}
+
+
+#restOverlay button {
+
+    width: auto;
+    padding: 10px 20px;
+
+}
+
+
+/* =========================================================
+   EMPTY / ERROR
+   ========================================================= */
+
+.emptyMessage {
+
+    text-align: center;
+    color: #aaa;
+    padding: 30px 10px;
+
+}
+
+
+.errorMessage {
+
+    background: #351515;
+    border-left: 4px solid #f44336;
+    padding: 15px;
+    border-radius: 8px;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     HOME
+     ===================================================== -->
+
+<div id="home" class="screen active">
+    <div class="centerBox">
+        <div class="startBox">
+            <h3>Next Workout</h3>
+            <h1 id="nextWorkout">
+                -
+            </h1>
+            <p
+                class="small"
+                id="nextWorkoutInfo"
+            >
+                -
+            </p>
+
+
+            <button
+                onclick="startWorkout()"
+            >
+                Start Workout
+            </button>
+
+
+            <button
+                onclick="exportBackup()"
+            >
+                Backup Data (JSON)
+            </button>
+
+
+            <button
+                onclick="document.getElementById('restoreInput').click()"
+            >
+                Restore Backup
+            </button>
+
+
+            <button
+                onclick="showScreen('graphs')"
+            >
+                Graphs
+            </button>
+			
+			<button
+				onclick="resetPlan()"
+			>
+				Reset Plan
+			</button>
+
+
+            <p
+                class="small"
+                id="lastInfo"
+            ></p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<input
+    type="file"
+    id="restoreInput"
+    accept="application/json"
+    style="display:none"
+    onchange="restoreBackup(event)"
+>
+
+
+<!-- =====================================================
+     WORKOUT
+     ===================================================== -->
+
+<div
+    id="workout"
+    class="screen"
+>
+
+    <div class="container">
+
+
+        <h2 id="workoutTitle"></h2>
+
+
+        <div
+            id="workoutPlanInfo"
+            class="planInfo"
+        ></div>
+
+
+        <div
+            id="exerciseContainer"
+        ></div>
+
+
+        <!-- REST OVERLAY -->
+
+        <div id="restOverlay">
+
+            <div
+                id="overlayExercise"
+            ></div>
+
+
+            <div
+                id="overlayTimer"
+            >
+                00:00
+            </div>
+
+
+            <button
+                onclick="closeOverlay()"
+            >
+                Skip Rest
+            </button>
+
+        </div>
+
+
+        <!-- REST TIMER -->
+
+        <div class="card">
+
+            <h3>
+                Rest Timer
+            </h3>
+
+
+            <div
+                id="restTimerDisplay"
+                style="
+                    font-size:22px;
+                    opacity:0.8;
+                "
+            >
+                Rest: ready
+            </div>
+
+        </div>
+
+
+        <button
+            onclick="finishWorkout()"
+        >
+            Finish Workout
+        </button>
+
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     SUMMARY
+     ===================================================== -->
+
+<div
+    id="summary"
+    class="screen"
+>
+
+    <div class="container">
+
+        <h2>
+            Workout Summary
+        </h2>
+
+
+        <div
+            id="summaryContent"
+        ></div>
+
+
+        <button
+            onclick="goHome()"
+        >
+            Back Home
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     GRAPHS
+     ===================================================== -->
+
+<div
+    id="graphs"
+    class="screen"
+>
+
+    <div class="container">
+
+        <h2>
+            Progress Graphs
+        </h2>
+
+
+        <select
+            id="exerciseSelect"
+            onchange="drawGraph()"
+        ></select>
+
+
+        <canvas
+            id="graphCanvas"
+            height="200"
+        ></canvas>
+
+
+        <button
+            onclick="showScreen('home')"
+        >
+            Back Home
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+/* =========================================================
+   GYM PLAN
+   =========================================================
+
+   DO NOT MODIFY THIS MARKER.
+
+   The Excel → HTML injector will replace it automatically
+   with the generated JSON.
+
+   ========================================================= */
+
+let gymPlan = {
+  "version": 1,
+  "sessions": [
+    {
+      "week": 1,
+      "session": 1,
+      "name": "FULL BODY 1",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": 5,
+          "rm": "75-80%"
+        },
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": 8,
+          "rm": 0.7
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": 8,
+          "rm": 0.7
+        },
+        {
+          "exercise": "Glute Ham Raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8-10",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20-25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 1,
+      "session": 2,
+      "name": "FULL BODY 2",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": 4,
+          "rm": 0.8
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": 3,
+          "rm": "82,5-87,5%"
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": 10,
+          "rm": 0.675
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Pull-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "5-8",
+          "rm": null
+        },
+        {
+          "exercise": "Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10-12",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8-10",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 1,
+      "session": 3,
+      "name": "FULL BODY 3",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "10-12",
+          "rm": null
+        },
+        {
+          "exercise": "Lat Pull-Over",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Incline Dumbell Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Face Pull",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "15-20",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 1,
+      "session": 4,
+      "name": "FULL BODY 4",
+      "exercises": [
+        {
+          "exercise": "Pause Deadlift",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "2",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Pause Barbell bench press",
+          "warmupSets": 3,
+          "workingSets": 3,
+          "reps": "5",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Nordic Ham Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "6-8",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Shrug",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20-25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 1,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1.EZ Bar Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 2,
+      "session": 1,
+      "name": "Lower 1",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "3",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Pause Squat",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "6-8",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8-10",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "10-12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 2,
+      "session": 2,
+      "name": "Upper 1",
+      "exercises": [
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "2",
+          "rm": "85-90%"
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": 0.775
+        },
+        {
+          "exercise": "Chin-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8-10",
+          "rm": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Facepull",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 2,
+      "session": 3,
+      "name": "Lower 2",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Romanian Deadlift",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Leg extension",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "Sit-ups",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 2,
+      "session": 4,
+      "name": "Upper 2",
+      "exercises": [
+        {
+          "exercise": "Close Grip Bench Press",
+          "warmupSets": 3,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Pull-up",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Shrug",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Upright Row",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "S1 Ez bar curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Skull crusher",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "8-10",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 2,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1.EZ Bar Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "session": 1,
+      "name": "Full body 1",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "8",
+          "rm": 0.725
+        },
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "6",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": 0.725
+        },
+        {
+          "exercise": "Glute Ham Raise",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "8-10",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20-25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "session": 2,
+      "name": "Full body 2",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "2",
+          "rm": 0.85
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 3,
+          "workingSets": 1,
+          "reps": "6",
+          "rm": "75-80%"
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "8",
+          "rm": 0.725
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "15-20",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Pull-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "5-8",
+          "rm": null
+        },
+        {
+          "exercise": "Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10-12",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "session": 3,
+      "name": "Full body 3",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "10-12",
+          "rm": null
+        },
+        {
+          "exercise": "Lat Pull-Over",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Incline Dumbell Curl",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "12-15",
+          "rm": null
+        },
+        {
+          "exercise": "Face Pull",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "15-20",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "session": 4,
+      "name": "Full body 4",
+      "exercises": [
+        {
+          "exercise": "Pause Deadlift",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "2",
+          "rm": 0.775
+        },
+        {
+          "exercise": "Pause Barbell bench press",
+          "warmupSets": 3,
+          "workingSets": 4,
+          "reps": "5",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Nordic Ham Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "6-8",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Shrug",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20-25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 4,
+      "session": 1,
+      "name": "Lower 1",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "2",
+          "rm": 0.875
+        },
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "3",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Pause Squat",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 4,
+      "session": 2,
+      "name": "Upper 1",
+      "exercises": [
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 3,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Chin-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Facepull",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 4,
+      "session": 3,
+      "name": "Lower 2",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Romanian Deadlift",
+          "warmupSets": 3,
+          "workingSets": 2,
+          "reps": "4",
+          "rm": null
+        },
+        {
+          "exercise": "Leg extension",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Sit-ups",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 4,
+      "session": 4,
+      "name": "Upper 2",
+      "exercises": [
+        {
+          "exercise": "Close Grip Bench Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Pull-up",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Shrug",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Upright Row",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1 Ez bar curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Skull crusher",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 4,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1.EZ Bar Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 5,
+      "session": 1,
+      "name": "Full body 1",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "3",
+          "rm": 0.875
+        },
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Glute Ham Raise",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 5,
+      "session": 2,
+      "name": "Full body 2",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "3",
+          "rm": 0.85
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 3,
+          "workingSets": 1,
+          "reps": "4",
+          "rm": 0.875
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "6",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Pull-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 5,
+      "session": 3,
+      "name": "Full body 3",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": 0.775
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Lat Pull-Over",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Incline Dumbell Curl",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Face Pull",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "20",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 5,
+      "session": 4,
+      "name": "Full body 4",
+      "exercises": [
+        {
+          "exercise": "Pause Deadlift",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "2",
+          "rm": 0.825
+        },
+        {
+          "exercise": "Pause Barbell bench press",
+          "warmupSets": 3,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Nordic Ham Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Shrug",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 5,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 6,
+      "session": 1,
+      "name": "Lower 1",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Pause Squat",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 6,
+      "session": 2,
+      "name": "Upper 1",
+      "exercises": [
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "7",
+          "rm": 0.775
+        },
+        {
+          "exercise": "Chin-Up",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "4",
+          "rm": 0.825
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Facepull",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Lateral Raise",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Hammer Curl",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 6,
+      "session": 3,
+      "name": "Lower 2",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "1",
+          "rm": 0.95
+        },
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "7",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Romanian Deadlift",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Leg extension",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Sit-ups",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 6,
+      "session": 4,
+      "name": "Upper 2",
+      "exercises": [
+        {
+          "exercise": "Close Grip Bench Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Pull-up",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Shrug",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Upright Row",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1 Ez bar curl",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Skull crusher",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 6,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 7,
+      "session": 1,
+      "name": "Full body 1",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "3",
+          "rm": 0.9
+        },
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "2",
+          "rm": 0.85
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 4,
+          "reps": "8",
+          "rm": 0.7
+        },
+        {
+          "exercise": "Glute Ham Raise",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 7,
+      "session": 2,
+      "name": "Full body 2",
+      "exercises": [
+        {
+          "exercise": "Pause Deadlift",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "2",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "3",
+          "rm": 0.9
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Pull-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "5",
+          "rm": null
+        },
+        {
+          "exercise": "Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 7,
+      "session": 3,
+      "name": "Full body 3",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "6",
+          "rm": 0.775
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Lat Pull-Over",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Incline Dumbell Curl",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Face Pull",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 7,
+      "session": 4,
+      "name": "Full body 4",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "3",
+          "rm": 0.9
+        },
+        {
+          "exercise": "Pause Barbell bench press",
+          "warmupSets": 3,
+          "workingSets": 4,
+          "reps": "6",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Nordic Ham Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Shrug",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 7,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 8,
+      "session": 1,
+      "name": "Lower 1",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "5",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Pause Squat",
+          "warmupSets": 2,
+          "workingSets": 2,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 8,
+      "session": 2,
+      "name": "Upper 1",
+      "exercises": [
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Chin-Up",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Facepull",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Lateral Raise",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Hammer Curl",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 8,
+      "session": 3,
+      "name": "Lower 2",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "7",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Block pull",
+          "warmupSets": 3,
+          "workingSets": 2,
+          "reps": "4",
+          "rm": null
+        },
+        {
+          "exercise": "Leg extension",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Sit-ups",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 8,
+      "session": 4,
+      "name": "Upper 2",
+      "exercises": [
+        {
+          "exercise": "Dumbell incline press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": null
+        },
+        {
+          "exercise": "Pull-up",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Shrug",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1. Upright Row",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S1 Ez bar curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Skull crusher",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 8,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 9,
+      "session": 1,
+      "name": "Full body 1",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "2",
+          "rm": 0.925
+        },
+        {
+          "exercise": "Back Squat walkout",
+          "warmupSets": 0,
+          "workingSets": 1,
+          "reps": "10s",
+          "rm": 1
+        },
+        {
+          "exercise": "Overhead Press",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "6",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Glute Ham Raise",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Row",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Hammer Curl",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 9,
+      "session": 2,
+      "name": "Full body 2",
+      "exercises": [
+        {
+          "exercise": "Deadlift",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "4",
+          "rm": 0.8
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 4,
+          "workingSets": 1,
+          "reps": "2",
+          "rm": 0.925
+        },
+        {
+          "exercise": "Barbell Bench press",
+          "warmupSets": 0,
+          "workingSets": 2,
+          "reps": "2",
+          "rm": 0.875
+        },
+        {
+          "exercise": "Hip Abduction",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Weighted Pull-Up",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "5",
+          "rm": null
+        },
+        {
+          "exercise": "Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Calf raise",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 9,
+      "session": 3,
+      "name": "Full body 3",
+      "exercises": [
+        {
+          "exercise": "Back Squat",
+          "warmupSets": 4,
+          "workingSets": 3,
+          "reps": "4",
+          "rm": 0.825
+        },
+        {
+          "exercise": "Weighted Dip",
+          "warmupSets": 2,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Leg raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "Lat Pull-Over",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Incline Dumbell Curl",
+          "warmupSets": 1,
+          "workingSets": 2,
+          "reps": "15",
+          "rm": null
+        },
+        {
+          "exercise": "Face Pull",
+          "warmupSets": 0,
+          "workingSets": 4,
+          "reps": "20",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 9,
+      "session": 4,
+      "name": "Full body 4",
+      "exercises": [
+        {
+          "exercise": "Paused Deadlift",
+          "warmupSets": 4,
+          "workingSets": 4,
+          "reps": "2",
+          "rm": 0.75
+        },
+        {
+          "exercise": "Pause Barbell bench press",
+          "warmupSets": 3,
+          "workingSets": 3,
+          "reps": "5",
+          "rm": 0.775
+        },
+        {
+          "exercise": "Pendlay Row",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "10",
+          "rm": null
+        },
+        {
+          "exercise": "Nordic Ham Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "8",
+          "rm": null
+        },
+        {
+          "exercise": "Dumbell Shrug",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "25",
+          "rm": null
+        }
+      ]
+    },
+    {
+      "week": 9,
+      "session": 5,
+      "name": "Arms",
+      "exercises": [
+        {
+          "exercise": "S1. Skull crusher",
+          "warmupSets": 1,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Incline Dumbell Curl",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S2. Triceps Press Down",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "21",
+          "rm": null
+        },
+        {
+          "exercise": "S3.Lateral Raise",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "S3. Band Pull apart",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "20",
+          "rm": null
+        },
+        {
+          "exercise": "Bycicle Crunch",
+          "warmupSets": 0,
+          "workingSets": 3,
+          "reps": "12",
+          "rm": null
+        }
+      ]
+    }
+  ]
+};
+
+
+/* =========================================================
+   VARIABLES
+   ========================================================= */
+
+let currentWorkoutIndex =
+    parseInt(
+        localStorage.getItem(
+            "currentWorkoutIndex"
+        ) || "0"
+    );
+
+
+let sessionData = {};
+
+
+let history =
+    JSON.parse(
+        localStorage.getItem(
+            "history"
+        ) || "[]"
+    );
+
+
+let exerciseRestTimes =
+    JSON.parse(
+        localStorage.getItem(
+            "exerciseRestTimes"
+        ) || "{}"
+    );
+
+
+let chartInstance = null;
+
+
+let activeTimer = null;
+
+let remainingTime = 0;
+
+let timerEndTime = 0;
+
+
+/* =========================================================
+   GET SESSIONS
+   ========================================================= */
+
+function getSessions() {
+
+    if (
+        !gymPlan ||
+        !Array.isArray(
+            gymPlan.sessions
+        )
+    ) {
+
+        return [];
+
+    }
+
+
+    return gymPlan.sessions;
+
+}
+
+
+/* =========================================================
+   CURRENT SESSION
+   ========================================================= */
+
+function getCurrentSession() {
+
+    const sessions =
+        getSessions();
+
+
+    if (!sessions.length) {
+
+        return null;
+
+    }
+
+
+    if (
+        currentWorkoutIndex >=
+        sessions.length
+    ) {
+
+        currentWorkoutIndex = 0;
+
+        localStorage.setItem(
+            "currentWorkoutIndex",
+            currentWorkoutIndex
+        );
+
+    }
+
+
+    return sessions[
+        currentWorkoutIndex
+    ];
+
+}
+
+
+/* =========================================================
+   SHOW SCREEN
+   ========================================================= */
+
+function showScreen(id) {
+
+    document
+        .querySelectorAll(".screen")
+        .forEach(
+            s =>
+                s.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .getElementById(id)
+        .classList.add(
+            "active"
+        );
+
+
+    document.body.classList.toggle(
+        "homeMode",
+        id === "home"
+    );
+
+
+    if (
+        id === "graphs"
+    ) {
+
+        loadExerciseOptions();
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE HOME
+   ========================================================= */
+
+function updateHome() {
+
+    const workout =
+        getCurrentSession();
+
+
+    if (!workout) {
+
+        document.getElementById(
+            "nextWorkout"
+        ).innerText =
+            "No plan loaded";
+
+
+        document.getElementById(
+            "nextWorkoutInfo"
+        ).innerText =
+            "Load a gym plan first.";
+
+
+        document.getElementById(
+            "lastInfo"
+        ).innerText =
+            "";
+
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "nextWorkout"
+    ).innerText =
+        workout.name ||
+        "Workout";
+
+
+    document.getElementById(
+        "nextWorkoutInfo"
+    ).innerText =
+        "Week " +
+        workout.week +
+        " · Session " +
+        workout.session;
+
+
+    document.getElementById(
+        "lastInfo"
+    ).innerText =
+        "Workout " +
+        (currentWorkoutIndex + 1) +
+        " of " +
+        getSessions().length;
+
+}
+
+
+/* =========================================================
+   START WORKOUT
+   ========================================================= */
+
+function startWorkout() {
+
+    const workout =
+        getCurrentSession();
+
+
+    if (!workout) {
+
+        alert(
+            "No gym plan has been loaded."
+        );
+
+        return;
+
+    }
+
+
+    showScreen("workout");
+
+
+    document.getElementById(
+        "workoutTitle"
+    ).innerText =
+        workout.name ||
+        "Workout";
+
+
+    document.getElementById(
+        "workoutPlanInfo"
+    ).innerHTML =
+        "<strong>Week " +
+        workout.week +
+        "</strong> · Session <strong>" +
+        workout.session +
+        "</strong>";
+
+
+    const container =
+        document.getElementById(
+            "exerciseContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    sessionData = {};
+
+
+    const prev =
+        history
+            .slice()
+            .reverse()
+            .find(
+                h =>
+                    h.name ===
+                    workout.name
+            );
+
+
+    const exercises =
+        Array.isArray(
+            workout.exercises
+        )
+            ? workout.exercises
+            : [];
+
+
+    if (!exercises.length) {
+
+        container.innerHTML = `
+            <div class="emptyMessage">
+                No exercises found
+                for this workout.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    exercises.forEach(
+        (exerciseData) => {
+
+            createExerciseCard(
+                exerciseData,
+                prev
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CREATE EXERCISE CARD
+   ========================================================= */
+
+function createExerciseCard(
+    exerciseData,
+    prev
+) {
+
+    const ex =
+        exerciseData.exercise;
+
+
+    if (!ex) {
+
+        return;
+
+    }
+
+
+    sessionData[ex] = [];
+
+
+    const prevSets =
+        prev?.sets?.[ex] || [];
+
+
+    const card =
+        document.createElement(
+            "div"
+        );
+
+
+    card.className =
+        "card";
+
+
+    /* =====================================================
+       REST SELECTOR
+       ===================================================== */
+
+    const restSelect =
+        document.createElement(
+            "select"
+        );
+
+
+    [1,2,3,4,5].forEach(
+        m => {
+
+            const opt =
+                document.createElement(
+                    "option"
+                );
+
+
+            opt.value = m;
+
+
+            opt.textContent =
+                m + " min";
+
+
+            restSelect.appendChild(
+                opt
+            );
+
+        }
+    );
+
+
+    restSelect.value =
+        exerciseRestTimes[ex] ||
+        1;
+
+
+    restSelect.onchange =
+        () => {
+
+            exerciseRestTimes[ex] =
+                parseInt(
+                    restSelect.value
+                );
+
+
+            localStorage.setItem(
+                "exerciseRestTimes",
+                JSON.stringify(
+                    exerciseRestTimes
+                )
+            );
+
+        };
+
+
+    card.appendChild(
+        restSelect
+    );
+
+
+    /* =====================================================
+       TITLE
+       ===================================================== */
+
+    const title =
+        document.createElement(
+            "h3"
+        );
+
+
+    title.innerText =
+        ex;
+
+
+    card.appendChild(
+        title
+    );
+
+
+    /* =====================================================
+       TARGET INFORMATION
+       ===================================================== */
+
+    const target =
+        document.createElement(
+            "div"
+        );
+
+
+    target.className =
+        "targetInfo";
+
+
+    const targetParts = [];
+
+
+    if (
+        exerciseData.reps !== null &&
+        exerciseData.reps !== undefined &&
+        exerciseData.reps !== ""
+    ) {
+
+        targetParts.push(
+            "Reps: <strong>" +
+            escapeHTML(
+                exerciseData.reps
+            ) +
+            "</strong>"
+        );
+
+    }
+
+
+    if (
+        exerciseData.rm !== null &&
+        exerciseData.rm !== undefined &&
+        exerciseData.rm !== ""
+    ) {
+
+        targetParts.push(
+            "%RM: <strong>" +
+            escapeHTML(
+                exerciseData.rm
+            ) +
+            "</strong>"
+        );
+
+    }
+
+
+    if (
+        targetParts.length
+    ) {
+
+        target.innerHTML =
+            targetParts.join(
+                " · "
+            );
+
+
+        card.appendChild(
+            target
+        );
+
+    }
+
+
+    /* =====================================================
+       WARMUP SETS
+       ===================================================== */
+
+    const warmupSets =
+        parseNumber(
+            exerciseData.warmupSets
+        );
+
+
+    if (
+        warmupSets > 0
+    ) {
+
+        const label =
+            document.createElement(
+                "div"
+            );
+
+
+        label.className =
+            "sectionLabel";
+
+
+        label.innerText =
+            "Warm-up";
+
+
+        card.appendChild(
+            label
+        );
+
+
+        for (
+            let i = 0;
+            i < warmupSets;
+            i++
+        ) {
+
+            createSetRow(
+                card,
+                ex,
+                i,
+                prevSets[i],
+                "warmup"
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       WORKING SETS
+       ===================================================== */
+
+    const workingSets =
+        parseNumber(
+            exerciseData.workingSets
+        );
+
+
+    if (
+        workingSets > 0
+    ) {
+
+        const label =
+            document.createElement(
+                "div"
+            );
+
+
+        label.className =
+            "sectionLabel";
+
+
+        label.innerText =
+            "Working Sets";
+
+
+        card.appendChild(
+            label
+        );
+
+
+        for (
+            let i = 0;
+            i < workingSets;
+            i++
+        ) {
+
+            createSetRow(
+                card,
+                ex,
+                i,
+                prevSets[
+                    warmupSets + i
+                ],
+                "working"
+            );
+
+        }
+
+    }
+
+
+    if (
+        warmupSets <= 0 &&
+        workingSets <= 0
+    ) {
+
+        const warning =
+            document.createElement(
+                "div"
+            );
+
+
+        warning.className =
+            "small";
+
+
+        warning.innerText =
+            "No sets configured.";
+
+
+        card.appendChild(
+            warning
+        );
+
+    }
+
+
+    document
+        .getElementById(
+            "exerciseContainer"
+        )
+        .appendChild(
+            card
+        );
+
+}
+
+
+/* =========================================================
+   CREATE SET ROW
+   ========================================================= */
+
+function createSetRow(
+    card,
+    ex,
+    index,
+    previousSet,
+    type
+) {
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+
+    const w =
+        document.createElement(
+            "input"
+        );
+
+
+    w.placeholder =
+        "kg";
+
+
+    w.type =
+        "number";
+
+
+    const r =
+        document.createElement(
+            "input"
+        );
+
+
+    r.placeholder =
+        "reps";
+
+
+    r.type =
+        "number";
+
+
+    const last =
+        document.createElement(
+            "div"
+        );
+
+
+    last.className =
+        "small";
+
+
+    last.innerText =
+        previousSet
+            ? `Last: ${previousSet.weight}x${previousSet.reps}`
+            : "Last: -";
+
+
+    const finishBtn =
+        document.createElement(
+            "button"
+        );
+
+
+    finishBtn.innerText =
+        "Finish Set";
+
+
+    finishBtn.className =
+        "finishSetBtn";
+
+
+    const checkmark =
+        document.createElement(
+            "div"
+        );
+
+
+    checkmark.innerText =
+        "✔";
+
+
+    checkmark.style.color =
+        "#4caf50";
+
+
+    checkmark.style.fontSize =
+        "20px";
+
+
+    checkmark.style.display =
+        "none";
+
+
+    finishBtn.onclick =
+        () => {
+
+            /*
+             * Save current values before
+             * starting the rest timer.
+             */
+
+            sessionData[ex][
+                getSessionSetIndex(
+                    ex,
+                    type,
+                    index
+                )
+            ] = {
+
+                weight:
+                    +w.value || 0,
+
+                reps:
+                    +r.value || 0
+
+            };
+
+
+            checkmark.style.display =
+                "block";
+
+
+            startRestTimer(
+                ex
+            );
+
+        };
+
+
+    w.onchange =
+        r.onchange =
+        () => {
+
+            sessionData[ex][
+                getSessionSetIndex(
+                    ex,
+                    type,
+                    index
+                )
+            ] = {
+
+                weight:
+                    +w.value || 0,
+
+                reps:
+                    +r.value || 0
+
+            };
+
+        };
+
+
+    row.appendChild(
+        w
+    );
+
+
+    row.appendChild(
+        r
+    );
+
+
+    row.appendChild(
+        last
+    );
+
+
+    row.appendChild(
+        finishBtn
+    );
+
+
+    row.appendChild(
+        checkmark
+    );
+
+
+    card.appendChild(
+        row
+    );
+
+}
+
+
+/* =========================================================
+   SET INDEX
+   ========================================================= */
+
+function getSessionSetIndex(
+    ex,
+    type,
+    index
+) {
+
+    const workout =
+        getCurrentSession();
+
+
+    if (!workout) {
+
+        return index;
+
+    }
+
+
+    const exercise =
+        workout.exercises.find(
+            e =>
+                e.exercise === ex
+        );
+
+
+    if (!exercise) {
+
+        return index;
+
+    }
+
+
+    const warmup =
+        parseNumber(
+            exercise.warmupSets
+        );
+
+
+    if (
+        type === "warmup"
+    ) {
+
+        return index;
+
+    }
+
+
+    return warmup + index;
+
+}
+
+
+/* =========================================================
+   CALCULATE VOLUME
+   ========================================================= */
+
+function calculateVolume(
+    sets
+) {
+
+    return sets.reduce(
+        (s, x) =>
+            s +
+            (
+                x.weight *
+                x.reps
+            ),
+        0
+    );
+
+}
+
+
+/* =========================================================
+   FINISH WORKOUT
+   ========================================================= */
+
+function finishWorkout() {
+
+    const summary = {};
+
+    const clean = {};
+
+
+    Object.keys(
+        sessionData
+    ).forEach(
+        ex => {
+
+            const sets =
+                sessionData[ex]
+                    .filter(Boolean);
+
+
+            summary[ex] =
+                calculateVolume(
+                    sets
+                );
+
+
+            clean[ex] =
+                sets;
+
+        }
+    );
+
+
+    const workout =
+        getCurrentSession();
+
+
+    if (!workout) {
+
+        return;
+
+    }
+
+
+    history.push({
+
+        name:
+            workout.name,
+
+        week:
+            workout.week,
+
+        session:
+            workout.session,
+
+        data:
+            summary,
+
+        sets:
+            clean
+
+    });
+
+
+    localStorage.setItem(
+        "history",
+        JSON.stringify(
+            history
+        )
+    );
+
+
+    const totalSessions =
+        getSessions().length;
+
+
+    if (
+        totalSessions > 0
+    ) {
+
+        currentWorkoutIndex =
+            (
+                currentWorkoutIndex + 1
+            ) %
+            totalSessions;
+
+    } else {
+
+        currentWorkoutIndex =
+            0;
+
+    }
+
+
+    localStorage.setItem(
+        "currentWorkoutIndex",
+        currentWorkoutIndex
+    );
+
+
+    createSummary(
+        workout,
+        summary
+    );
+
+
+    showScreen(
+        "summary"
+    );
+
+}
+
+
+/* =========================================================
+   SUMMARY
+   ========================================================= */
+
+function createSummary(
+    workout,
+    summary
+) {
+
+    const container =
+        document.getElementById(
+            "summaryContent"
+        );
+
+
+    container.innerHTML = "";
+
+
+    const title =
+        document.createElement(
+            "div"
+        );
+
+
+    title.className =
+        "card";
+
+
+    title.innerHTML =
+        `
+        <h3>
+            ${escapeHTML(
+                workout.name
+            )}
+        </h3>
+
+        <div class="small">
+            Week ${workout.week}
+            · Session ${workout.session}
+        </div>
+        `;
+
+
+    container.appendChild(
+        title
+    );
+
+
+    Object.keys(
+        summary
+    ).forEach(
+        ex => {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "card";
+
+
+            card.innerHTML =
+                `
+                <strong>
+                    ${escapeHTML(ex)}
+                </strong>
+
+                <div class="small">
+                    Volume:
+                    ${summary[ex]}
+                </div>
+                `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   HOME
+   ========================================================= */
+
+function goHome() {
+
+    showScreen(
+        "home"
+    );
+
+
+    updateHome();
+
+}
+
+
+/* =========================================================
+   BACKUP
+   ========================================================= */
+
+function exportBackup() {
+
+    const blob =
+        new Blob(
+            [
+                JSON.stringify(
+                    {
+                        history,
+                        currentWorkoutIndex
+                    },
+                    null,
+                    2
+                )
+            ],
+            {
+                type:
+                    "application/json"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const a =
+        document.createElement(
+            "a"
+        );
+
+
+    a.href =
+        url;
+
+
+    a.download =
+        "gym-backup.json";
+
+
+    document.body.appendChild(
+        a
+    );
+
+
+    a.click();
+
+
+    document.body.removeChild(
+        a
+    );
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+
+/* =========================================================
+   RESTORE BACKUP
+   ========================================================= */
+
+function restoreBackup(e) {
+
+    const f =
+        e.target.files[0];
+
+
+    if (!f) {
+
+        return;
+
+    }
+
+
+    const r =
+        new FileReader();
+
+
+    r.onload =
+        function(ev) {
+
+            try {
+
+                const b =
+                    JSON.parse(
+                        ev.target.result
+                    );
+
+
+                history =
+                    b.history ||
+                    [];
+
+
+                currentWorkoutIndex =
+                    b.currentWorkoutIndex ||
+                    0;
+
+
+                localStorage.setItem(
+                    "history",
+                    JSON.stringify(
+                        history
+                    )
+                );
+
+
+                localStorage.setItem(
+                    "currentWorkoutIndex",
+                    currentWorkoutIndex
+                );
+
+
+                updateHome();
+
+
+                alert(
+                    "Backup restored successfully."
+                );
+
+
+            } catch(error) {
+
+                alert(
+                    "Invalid backup file."
+                );
+
+            }
+
+        };
+
+
+    r.readAsText(
+        f
+    );
+
+}
+
+/* =========================================================
+   RESET PLAN
+   ========================================================= */
+
+function resetPlan() {
+
+    const confirmed =
+        confirm(
+            "⚠️ This will delete all workout history and restart the plan from Week 1 · Session 1.\n\n" +
+            "Your exercise rest times will NOT be deleted.\n\n" +
+            "Do you want to continue?"
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    /*
+     * Delete workout history
+     */
+
+    history = [];
+
+
+    /*
+     * Restart from first workout
+     */
+
+    currentWorkoutIndex = 0;
+
+
+    /*
+     * Save the reset state
+     */
+
+    localStorage.setItem(
+        "history",
+        JSON.stringify(
+            history
+        )
+    );
+
+
+    localStorage.setItem(
+        "currentWorkoutIndex",
+        currentWorkoutIndex
+    );
+
+
+    /*
+     * Update Home screen
+     */
+
+    updateHome();
+
+
+    /*
+     * Return to Home
+     */
+
+    showScreen(
+        "home"
+    );
+
+
+    alert(
+        "Plan reset successfully.\n\n" +
+        "You are now starting from Week 1 · Session 1."
+    );
+
+}
+
+/* =========================================================
+   GRAPH SYSTEM
+   ========================================================= */
+
+function loadExerciseOptions() {
+
+    const sel =
+        document.getElementById(
+            "exerciseSelect"
+        );
+
+
+    sel.innerHTML = "";
+
+
+    const set =
+        new Set();
+
+
+    history.forEach(
+        h => {
+
+            Object.keys(
+                h.data || {}
+            ).forEach(
+                e =>
+                    set.add(e)
+            );
+
+        }
+    );
+
+
+    [...set].forEach(
+        e => {
+
+            const o =
+                document.createElement(
+                    "option"
+                );
+
+
+            o.value =
+                e;
+
+
+            o.textContent =
+                e;
+
+
+            sel.appendChild(
+                o
+            );
+
+        }
+    );
+
+
+    if (
+        set.size
+    ) {
+
+        drawGraph();
+
+    }
+
+}
+
+
+/* =========================================================
+   DRAW GRAPH
+   ========================================================= */
+
+function drawGraph() {
+
+    const ex =
+        document.getElementById(
+            "exerciseSelect"
+        ).value;
+
+
+    if (!ex) {
+
+        return;
+
+    }
+
+
+    const labels = [];
+
+    const values = [];
+
+
+    history.forEach(
+        (h, idx) => {
+
+            if (
+                h.data &&
+                h.data[ex] !== undefined
+            ) {
+
+                values.push(
+                    h.data[ex]
+                );
+
+
+                labels.push(
+                    h.name +
+                    " " +
+                    (idx + 1)
+                );
+
+            }
+
+        }
+    );
+
+
+    const data = {
+
+        labels,
+
+        datasets: [
+
+            {
+
+                label: ex,
+
+                data: values,
+
+                borderColor:
+                    "#4caf50",
+
+                backgroundColor:
+                    "rgba(76, 175, 80, 0.2)",
+
+                pointStyle:
+                    "circle",
+
+                pointRadius:
+                    8,
+
+                pointHoverRadius:
+                    14,
+
+                tension:
+                    0.35
+
+            }
+
+        ]
+
+    };
+
+
+    const config = {
+
+        type:
+            "line",
+
+        data,
+
+        options: {
+
+            responsive:
+                true,
+
+            plugins: {
+
+                legend: {
+
+                    labels: {
+
+                        color:
+                            "#fff"
+
+                    }
+
+                },
+
+                title: {
+
+                    display:
+                        true,
+
+                    text:
+                        ex,
+
+                    color:
+                        "#fff"
+
+                }
+
+            },
+
+            scales: {
+
+                x: {
+
+                    ticks: {
+
+                        color:
+                            "#aaa"
+
+                    },
+
+                    grid: {
+
+                        color:
+                            "#222"
+
+                    }
+
+                },
+
+                y: {
+
+                    ticks: {
+
+                        color:
+                            "#aaa"
+
+                    },
+
+                    grid: {
+
+                        color:
+                            "#222"
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    };
+
+
+    if (
+        chartInstance
+    ) {
+
+        chartInstance.destroy();
+
+    }
+
+
+    chartInstance =
+        new Chart(
+            document.getElementById(
+                "graphCanvas"
+            ),
+            config
+        );
+
+}
+
+
+/* =========================================================
+   REST TIMER
+   ========================================================= */
+
+function startRestTimer(
+    exercise
+) {
+
+    clearInterval(
+        activeTimer
+    );
+
+
+    const minutes =
+        exerciseRestTimes[
+            exercise
+        ] || 1;
+
+
+    timerEndTime =
+        Date.now() +
+        minutes *
+        60 *
+        1000;
+
+
+    showOverlay(
+        exercise
+    );
+
+
+    updateTimerDisplay();
+
+
+    activeTimer =
+        setInterval(
+            () => {
+
+                const now =
+                    Date.now();
+
+
+                remainingTime =
+                    Math.max(
+                        0,
+                        Math.round(
+                            (
+                                timerEndTime -
+                                now
+                            ) / 1000
+                        )
+                    );
+
+
+                updateTimerDisplay();
+
+
+                if (
+                    remainingTime <= 0
+                ) {
+
+                    clearInterval(
+                        activeTimer
+                    );
+
+
+                    activeTimer =
+                        null;
+
+
+                    closeOverlay();
+
+
+                    playRestSound();
+
+
+                    alert(
+                        "Rest finished 💪"
+                    );
+
+                }
+
+            },
+            250
+        );
+
+}
+
+
+/* =========================================================
+   UPDATE TIMER DISPLAY
+   ========================================================= */
+
+function updateTimerDisplay() {
+
+    let min =
+        String(
+            Math.floor(
+                remainingTime / 60
+            )
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    let sec =
+        String(
+            remainingTime % 60
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const text =
+        `${min}:${sec}`;
+
+
+    const overlay =
+        document.getElementById(
+            "overlayTimer"
+        );
+
+
+    if (overlay) {
+
+        overlay.innerText =
+            text;
+
+    }
+
+
+    const el =
+        document.getElementById(
+            "restTimerDisplay"
+        );
+
+
+    if (el) {
+
+        el.innerText =
+            `Rest: ${text}`;
+
+    }
+
+}
+
+
+/* =========================================================
+   REST SOUND
+   ========================================================= */
+
+function playRestSound() {
+
+    const audio =
+        new Audio(
+            "https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+        );
+
+
+    audio.play();
+
+}
+
+
+/* =========================================================
+   SHOW OVERLAY
+   ========================================================= */
+
+function showOverlay(
+    exercise
+) {
+
+    document.getElementById(
+        "restOverlay"
+    ).style.display =
+        "flex";
+
+
+    document.getElementById(
+        "overlayExercise"
+    ).innerText =
+        exercise;
+
+}
+
+
+/* =========================================================
+   CLOSE OVERLAY
+   ========================================================= */
+
+function closeOverlay() {
+
+    document.getElementById(
+        "restOverlay"
+    ).style.display =
+        "none";
+
+
+    clearInterval(
+        activeTimer
+    );
+
+
+    activeTimer =
+        null;
+
+}
+
+
+/* =========================================================
+   NUMBER HELPER
+   ========================================================= */
+
+function parseNumber(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return 0;
+
+    }
+
+
+    const number =
+        parseInt(
+            value
+        );
+
+
+    return isNaN(number)
+        ? 0
+        : number;
+
+}
+
+
+/* =========================================================
+   HTML ESCAPE
+   ========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+function initializeApp() {
+
+    updateHome();
+
+    showScreen(
+        "home"
+    );
+
+    document.body.classList.add(
+        "homeMode"
+    );
+
+
+    if (
+        "serviceWorker" in navigator
+    ) {
+
+        navigator.serviceWorker.register(
+            "sw.js"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+initializeApp();
+
+
+</script>
+
+</body>
+
+</html>
